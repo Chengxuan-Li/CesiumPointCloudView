@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CesiumJS Point Cloud Viewer</title>
+
+    <script>window.CESIUM_ION_TOKEN = window.CESIUM_ION_TOKEN || "FILL_ME";</script>
+    <script src="./src/token.local.js"></script>
+    <!-- CesiumJS -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #cesiumContainer {
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+        }
+
+        /* ---------- stats bar ---------- */
+        #statsBar {
+            position: absolute;
+            bottom: 12px; left: 12px;
+            display: flex;
+            gap: 12px;
+            background: rgba(20, 22, 30, 0.82);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 8px;
+            padding: 8px 14px;
+            color: #9ca0b0;
+            font-size: 12px;
+            font-variant-numeric: tabular-nums;
+            z-index: 10;
+        }
+
+        #statsBar .stat-item strong {
+            color: #e0e0e0;
+        }
+
+        /* ---------- loading overlay ---------- */
+        #loadingOverlay {
+            position: absolute; inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 12, 20, 0.92);
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        #loadingOverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #4ea1ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loadingOverlay p {
+            color: #8a8fa0;
+            font-size: 14px;
+        }
+
+        .cesium-viewer-bottom { opacity: 0.4; }
+
+        /* ---------- legend ---------- */
+        #legend {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            min-width: 220px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: rgba(20, 22, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e0e0e0;
+            font-size: 11px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            z-index: 10;
+        }
+
+        #legend.hidden {
+            display: none;
+        }
+
+        #legendTitle {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        #legendAttribute {
+            font-size: 11px;
+            color: #9ca0b0;
+            margin-bottom: 6px;
+        }
+
+        #legendBarWrapper {
+            height: 14px;
+            border-radius: 7px;
+            overflow: hidden;
+            background: #444;
+            margin-bottom: 4px;
+        }
+
+        #legendBar {
+            width: 100%;
+            height: 100%;
+            background: #666;
+        }
+
+        #legendLabels {
+            display: flex;
+            justify-content: space-between;
+            font-variant-numeric: tabular-nums;
+            color: #9ca0b0;
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <!-- loading overlay -->
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Loading tileset&hellip;</p>
+    </div>
+
+    <!-- performance stats -->
+    <div id="statsBar">
+        <div class="stat-item">FPS: <strong id="fpsValue">--</strong></div>
+        <div class="stat-item">Tiles: <strong id="tilesValue">--</strong></div>
+    </div>
+
+    <!-- legend -->
+    <div id="legend" class="hidden">
+        <div id="legendTitle">Legend</div>
+        <div id="legendAttribute"></div>
+        <div id="legendBarWrapper">
+            <div id="legendBar"></div>
+        </div>
+        <div id="legendLabels">
+            <span id="legendMin">0</span>
+            <span id="legendMax">0</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initViewer } from "./src/viewer.js";
+        import { loadTilesets } from "./src/tilesets.js";
+        import { loadLegend } from "./src/legend.js";
+
+        const viewer = initViewer();
+        let pointCloudTileset = null;
+        let legend = null;
+
+        // --- Load legend (from src/legend.json) ---
+        try {
+            legend = await loadLegend();
+        } catch (e) {
+            console.warn("[Cesium Point Cloud] Legend not loaded:", e.message);
+        }
+
+        // If legend loaded, initialise legend UI
+        if (legend) {
+            const legendEl = document.getElementById("legend");
+            const attrEl = document.getElementById("legendAttribute");
+            const minEl = document.getElementById("legendMin");
+            const maxEl = document.getElementById("legendMax");
+            const barEl = document.getElementById("legendBar");
+
+            if (legendEl && attrEl && minEl && maxEl && barEl) {
+                legendEl.classList.remove("hidden");
+                attrEl.textContent = legend.attribute;
+                minEl.textContent = legend.value_min.toFixed(0);
+                maxEl.textContent = legend.value_max.toFixed(0);
+
+                // Build CSS linear-gradient from stops
+                const stops = Array.isArray(legend.stops) ? legend.stops.slice().sort((a, b) => a.t - b.t) : [];
+                const parts = stops.map((s) => {
+                    const rgb = s.rgb255 || (s.rgb01 && s.rgb01.map((v) => Math.round(v * 255))) || [0, 0, 0];
+                    const pct = Math.round((s.t ?? 0) * 100);
+                    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]}) ${pct}%`;
+                });
+                if (parts.length > 0) {
+                    barEl.style.background = `linear-gradient(90deg, ${parts.join(", ")})`;
+                }
+            }
+        }
+
+        // --- Load tilesets ---
+        try {
+            pointCloudTileset = await loadTilesets(viewer);
+        } catch (err) {
+            document.getElementById("loadingOverlay").querySelector("p").textContent =
+                "Failed to load tileset. Check your Cesium ion token and asset ID.";
+            console.error(err);
+        }
+
+        document.getElementById("loadingOverlay").classList.add("hidden");
+
+        // --- Click to inspect point properties ---
+        viewer.screenSpaceEventHandler.setInputAction(function (movement) {
+            var feature = viewer.scene.pick(movement.position);
+            if (feature instanceof Cesium.Cesium3DTileFeature) {
+                var ids = feature.getPropertyIds ? feature.getPropertyIds() : (feature.getPropertyNames ? feature.getPropertyNames() : []);
+                console.group("[Cesium Point Cloud] Clicked feature (" + ids.length + " properties)");
+                console.log("Property names:", ids);
+                for (var i = 0; i < ids.length; i++) {
+                    console.log("  " + ids[i] + ":", feature.getProperty(ids[i]));
+                }
+                console.groupEnd();
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        // --- Performance stats ---
+        const fpsEl = document.getElementById("fpsValue");
+        const tilesEl = document.getElementById("tilesValue");
+
+        let frameCount = 0;
+        let lastSampleTime = performance.now();
+        let currentFps = 0;
+
+        viewer.scene.postRender.addEventListener(() => {
+            frameCount++;
+            const now = performance.now();
+            const dt = now - lastSampleTime;
+            if (dt >= 500) {
+                currentFps = (frameCount * 1000) / dt;
+                frameCount = 0;
+                lastSampleTime = now;
+                fpsEl.textContent = Math.round(currentFps);
+            }
+
+            if (pointCloudTileset) {
+                tilesEl.textContent = pointCloudTileset.tilesLoaded;
+            }
+        });
+    </script>
+</body>
+</html>
