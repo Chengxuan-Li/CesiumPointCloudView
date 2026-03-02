@@ -19,11 +19,65 @@
  */
 
 // src/config.js
+
+/**
+ * Mapping from city slug in the URL to Cesium ion asset IDs.
+ *
+ * Example URLs (depending on your hosting setup):
+ *   - /albany
+ *   - /tompkins
+ *
+ * The last non-empty path segment is treated as the city key.
+ * If no matching key is found, the default city is used.
+ */
+export const CITY_ASSETS = {
+    albany: 4492611,
+    tompkins: 4490407,
+};
+
+const DEFAULT_CITY = "tompkins";
+
+function resolveCityFromLocation() {
+    if (typeof window === "undefined" || !window.location) {
+        return DEFAULT_CITY;
+    }
+
+    // 1) Prefer explicit ?city=albany style query parameter
+    try {
+        const params = new URLSearchParams(window.location.search || "");
+        const qCity = (params.get("city") || "").toLowerCase();
+        if (qCity && Object.prototype.hasOwnProperty.call(CITY_ASSETS, qCity)) {
+            return qCity;
+        }
+    } catch {
+        // ignore URL parsing issues and fall through to pathname
+    }
+
+    // 2) Fallback to last non-empty path segment: /albany, /tompkins, etc.
+    const pathname = window.location.pathname || "";
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length > 0) {
+        const last = segments[segments.length - 1].toLowerCase();
+        if (Object.prototype.hasOwnProperty.call(CITY_ASSETS, last)) {
+            return last;
+        }
+    }
+
+    // 3) Default
+    return DEFAULT_CITY;
+}
+
+const RESOLVED_CITY = resolveCityFromLocation();
+const RESOLVED_ASSET_ID = CITY_ASSETS[RESOLVED_CITY] || CITY_ASSETS[DEFAULT_CITY];
+
 export const CESIUM_CONFIG = {
     ionAccessToken: window.CESIUM_ION_TOKEN || "FILL_ME",
-    assetId: 4490407,//4492611,//4490407,
+    assetId: RESOLVED_ASSET_ID,
     enableGoogle3DTiles: true,
 };
+
+// Expose the resolved city key for potential UI use.
+export const CURRENT_CITY = RESOLVED_CITY;
 
 /**
  * Vertical offset for the point cloud tileset, in meters.
