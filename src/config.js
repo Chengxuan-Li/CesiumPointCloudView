@@ -21,7 +21,7 @@
 // src/config.js
 export const CESIUM_CONFIG = {
     ionAccessToken: window.CESIUM_ION_TOKEN || "FILL_ME",
-    assetId: 4492611,//4490407,
+    assetId: 4490407,//4492611,//4490407,
     enableGoogle3DTiles: true,
 };
 
