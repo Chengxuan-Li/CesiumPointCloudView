@@ -21,7 +21,7 @@
 // src/config.js
 export const CESIUM_CONFIG = {
     ionAccessToken: window.CESIUM_ION_TOKEN || "FILL_ME",
-    assetId: 4482474,
+    assetId: 4492611,//4490407,
     enableGoogle3DTiles: true,
 };
 
@@ -63,7 +63,7 @@ export const PERFORMANCE_CONFIG = {
 /**
  * Per-point attribute definitions from the LiDAR dataset.
  *
- * Each entry describes a numeric field available in the tileset's batch table.
+ * Each entry describes a numeric field available in the tileset's metadata.
  *   - field:  exact property name in the 3D Tiles data
  *   - label:  human-readable name shown in the UI
  *   - unit:   display unit (for UI labels / legends)
@@ -71,19 +71,15 @@ export const PERFORMANCE_CONFIG = {
  *   - max:    expected maximum value
  *
  * Adjust min/max to match your actual data range for best colour distribution.
- * For structural metadata (glTF) the field must be "className.propertyName", e.g. "_batchTable.NumberOfReturns".
+ * For the current 3D Tiles 1.1 GLB tileset, only the structural metadata
+ * properties below are available.
  */
 export const ATTRIBUTES = [
-    { field: "_batchTable.ReturnNumber",     label: "Return Number",     unit: "",  min: 0, max: 5    },
-    { field: "_batchTable.NumberOfReturns",  label: "Number Of Returns", unit: "",  min: 0, max: 5    },
-    { field: "_batchTable.PointSourceID",    label: "Point Source ID",   unit: "",  min: 0, max: 65535 },
-    { field: "UserData",                     label: "User Data",        unit: "",  min: 0, max: 255   },
-    { field: "AnnualRadiation_Wh_m2",        label: "Annual Radiation",  unit: "Wh/m²", min: 0, max: 1800000 },
-    { field: "MeanSunlitFraction",           label: "Mean Sunlit Fraction", unit: "", min: 0, max: 1 },
-    { field: "Elevation_m",                  label: "Elevation",         unit: "m", min: 0, max: 500   },
-    { field: "HorizontalViewFactor",         label: "Horizontal View Factor", unit: "", min: 0, max: 1 },
-    { field: "SkyViewFactor",                label: "Sky View Factor",   unit: "",  min: 0, max: 1    },
-    { field: "Area_m2",                     label: "Area",              unit: "m²", min: 0, max: 100  },
+    { field: "AnnualRadiation_Wh_m2",  label: "Annual Radiation",       unit: "Wh/m²", min: 0, max: 1800000 },
+    { field: "MeanSunlitFraction",     label: "Mean Sunlit Fraction",   unit: "",      min: 0, max: 1        },
+    { field: "HorizontalViewFactor",   label: "Horizontal View Factor", unit: "",      min: 0, max: 1        },
+    { field: "SkyViewFactor",          label: "Sky View Factor",        unit: "",      min: 0, max: 1        },
+    { field: "Area_m2",               label: "Area",                   unit: "m²",    min: 0, max: 100      },
 ];
 
 /**
@@ -95,7 +91,7 @@ export const ATTRIBUTES = [
  * - defaultPointSize: Base point size in pixels (before attenuation).
  */
 export const STYLING_CONFIG = {
-    defaultAttribute: "_batchTable.ReturnNumber",
+    defaultAttribute: "AnnualRadiation_Wh_m2",
     defaultColorRamp: "heat",
     defaultPointSize: 3,
 };

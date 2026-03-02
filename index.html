@@ -10,14 +10,44 @@
     <!-- CesiumJS -->
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wdth,wght@25..151,100..1000&display=swap" rel="stylesheet" />
 
     <style>
+        /* EnergyAtlas design tokens (match main.css) */
+        :root {
+            --primary-color: #003978;
+            --secondary-color: #f1392a;
+            --accent-color: #4da3ff;
+            --text-dark: #e5e5e5;
+            --text-light: #b0b0b0;
+            --text-muted: #808080;
+            --bg-light: #2a2a2a;
+            --bg-white: #3a3a3a;
+            --bg-dark-surface: #1a1a1a;
+            --border-color: #404040;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --font-family: 'Roboto Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --border-radius: 8px;
+            --border-radius-sm: 4px;
+        }
+
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body {
             width: 100%; height: 100%;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: var(--font-family);
+            font-weight: 200;
+            color: var(--text-dark);
+            background: #000;
         }
 
         #cesiumContainer {
@@ -28,22 +58,22 @@
         /* ---------- stats bar ---------- */
         #statsBar {
             position: absolute;
-            bottom: 12px; left: 12px;
+            bottom: var(--spacing-sm);
+            left: var(--spacing-sm);
             display: flex;
-            gap: 12px;
-            background: rgba(20, 22, 30, 0.82);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 8px;
-            padding: 8px 14px;
-            color: #9ca0b0;
-            font-size: 12px;
+            gap: var(--spacing-md);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xs) var(--spacing-md);
+            color: var(--text-light);
+            font-size: var(--font-size-sm);
             font-variant-numeric: tabular-nums;
             z-index: 10;
         }
 
         #statsBar .stat-item strong {
-            color: #e0e0e0;
+            color: var(--text-dark);
         }
 
         /* ---------- loading overlay ---------- */
@@ -53,7 +83,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(10, 12, 20, 0.92);
+            background: var(--bg-dark-surface);
             z-index: 100;
             transition: opacity 0.5s ease;
         }
@@ -65,18 +95,18 @@
 
         .spinner {
             width: 40px; height: 40px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #4ea1ff;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            margin-bottom: 16px;
+            margin-bottom: var(--spacing-md);
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
         #loadingOverlay p {
-            color: #8a8fa0;
-            font-size: 14px;
+            color: var(--text-light);
+            font-size: var(--font-size-sm);
         }
 
         .cesium-viewer-bottom { opacity: 0.4; }
@@ -84,16 +114,16 @@
         /* ---------- legend ---------- */
         #legend {
             position: absolute;
-            bottom: 12px;
-            right: 12px;
-            min-width: 220px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            background: rgba(20, 22, 30, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #e0e0e0;
-            font-size: 11px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            bottom: var(--spacing-sm);
+            right: var(--spacing-sm);
+            min-width: 400px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            font-size: var(--font-size-xs);
+            font-family: var(--font-family);
             z-index: 10;
         }
 
@@ -102,36 +132,143 @@
         }
 
         #legendTitle {
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 4px;
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
         }
 
         #legendAttribute {
-            font-size: 11px;
-            color: #9ca0b0;
-            margin-bottom: 6px;
+            font-size: var(--font-size-xs);
+            color: var(--text-light);
+            margin-bottom: var(--spacing-sm);
         }
 
         #legendBarWrapper {
+            position: relative;
             height: 14px;
             border-radius: 7px;
-            overflow: hidden;
-            background: #444;
-            margin-bottom: 4px;
+            overflow: visible;
+            background: var(--bg-dark-surface);
+            margin-bottom: var(--spacing-xs);
         }
 
         #legendBar {
-            width: 100%;
-            height: 100%;
-            background: #666;
+            position: absolute;
+            inset: 0;
+            border-radius: 7px;
+            overflow: hidden;
+            background: var(--border-color);
+        }
+
+        .legend-filter-gray {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #legendGrayLeft {
+            left: 0;
+            border-radius: 7px 0 0 7px;
+        }
+
+        #legendGrayRight {
+            right: 0;
+            border-radius: 0 7px 7px 0;
+        }
+
+        #legendRangeSlider {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        #legendRangeSlider .legend-handle {
+            pointer-events: auto;
+            position: absolute;
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            margin-left: -7px;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            background: var(--bg-white);
+            border: 2px solid var(--accent-color);
+            cursor: ew-resize;
+            z-index: 2;
         }
 
         #legendLabels {
             display: flex;
             justify-content: space-between;
             font-variant-numeric: tabular-nums;
-            color: #9ca0b0;
+            color: var(--text-light);
+            font-size: var(--font-size-xs);
+        }
+
+        #legendLabels .legend-tick {
+            flex: 0 0 auto;
+        }
+
+        /* ---------- style control panel (match jobRunner panel + form-group) ---------- */
+        #stylePanel {
+            position: absolute;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
+            width: 260px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-dark);
+            font-size: var(--font-size-sm);
+            padding: var(--spacing-md);
+            z-index: 10;
+        }
+
+        #stylePanel h2 {
+            font-size: var(--font-size-base);
+            font-weight: 400;
+            margin: 0 0 var(--spacing-sm) 0;
+        }
+
+        .style-row {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .style-row label {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--text-dark);
+            font-size: var(--font-size-sm);
+            font-weight: 400;
+        }
+
+        .style-row select,
+        .style-row input[type="range"] {
+            width: 100%;
+        }
+
+        .style-row select {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-dark);
+            padding: 2px var(--spacing-sm);
+            font-family: var(--font-family);
+            font-size: var(--font-size-sm);
+            height: 24px;
+            line-height: 20px;
+            box-sizing: border-box;
+        }
+
+        .style-row input[type="range"] {
+            accent-color: var(--accent-color);
+        }
+
+        .style-row input[type="checkbox"] {
+            accent-color: var(--accent-color);
+            margin-right: var(--spacing-xs);
         }
     </style>
 </head>
@@ -150,65 +287,153 @@
         <div class="stat-item">Tiles: <strong id="tilesValue">--</strong></div>
     </div>
 
+    <!-- style control panel -->
+    <div id="stylePanel">
+        <h2>Style</h2>
+
+        <div class="style-row">
+            <label for="colorBySelect">Colour by attribute</label>
+            <select id="colorBySelect"></select>
+        </div>
+
+        <div class="style-row">
+            <label for="colorRampSelect">Colour ramp</label>
+            <select id="colorRampSelect"></select>
+        </div>
+
+        <div class="style-row">
+            <label for="sizeBySelect">Size by attribute</label>
+            <select id="sizeBySelect">
+                <option value="">(None)</option>
+            </select>
+        </div>
+
+        <div class="style-row">
+            <label for="sizeScaleSlider">Global point size</label>
+            <input type="range" id="sizeScaleSlider" min="0.5" max="10" step="0.5" />
+            <div style="text-align:right; margin-top:2px;">
+                <span id="sizeScaleValue">--</span>
+            </div>
+        </div>
+
+        <div class="style-row">
+            <label>
+                <input type="checkbox" id="screenSizeToggle" checked />
+                Attenuation
+            </label>
+        </div>
+    </div>
+
     <!-- legend -->
     <div id="legend" class="hidden">
         <div id="legendTitle">Legend</div>
         <div id="legendAttribute"></div>
         <div id="legendBarWrapper">
             <div id="legendBar"></div>
+            <div id="legendGrayLeft" class="legend-filter-gray"></div>
+            <div id="legendGrayRight" class="legend-filter-gray"></div>
+            <div id="legendRangeSlider">
+                <span id="legendHandleMin" class="legend-handle" data-handle="min"></span>
+                <span id="legendHandleMax" class="legend-handle" data-handle="max"></span>
+            </div>
         </div>
         <div id="legendLabels">
-            <span id="legendMin">0</span>
-            <span id="legendMax">0</span>
+            <span id="legendMin" class="legend-tick">0</span>
+            <span id="legendTick1" class="legend-tick"></span>
+            <span id="legendTick2" class="legend-tick"></span>
+            <span id="legendTick3" class="legend-tick"></span>
+            <span id="legendMax" class="legend-tick">0</span>
         </div>
     </div>
 
     <script type="module">
         import { initViewer } from "./src/viewer.js";
-        import { loadTilesets } from "./src/tilesets.js";
-        import { loadLegend } from "./src/legend.js";
+        import { loadTilesets, runDiagnostic } from "./src/tilesets.js";
+        import {
+            applyDefaultStyle, setStyleAttribute, setColorRamp,
+            setSizeAttribute, setPointSize, setScreenSpaceSize,
+            getColorRampNames, getCurrentRampCSSGradient, setFilterRange, getFilterRange
+        } from "./src/styling.js";
+        import { ATTRIBUTES, STYLING_CONFIG } from "./src/config.js";
 
         const viewer = initViewer();
         let pointCloudTileset = null;
-        let legend = null;
 
-        // --- Load legend (from src/legend.json) ---
-        try {
-            legend = await loadLegend();
-        } catch (e) {
-            console.warn("[Cesium Point Cloud] Legend not loaded:", e.message);
+        // --- Legend helpers ---
+        const legendEl       = document.getElementById("legend");
+        const legendTitleEl   = document.getElementById("legendTitle");
+        const legendAttrEl    = document.getElementById("legendAttribute");
+        const legendMinEl     = document.getElementById("legendMin");
+        const legendMaxEl     = document.getElementById("legendMax");
+        const legendTick1El   = document.getElementById("legendTick1");
+        const legendTick2El   = document.getElementById("legendTick2");
+        const legendTick3El   = document.getElementById("legendTick3");
+        const legendBarEl     = document.getElementById("legendBar");
+        const legendBarWrapper = document.getElementById("legendBarWrapper");
+        const legendGrayLeft   = document.getElementById("legendGrayLeft");
+        const legendGrayRight  = document.getElementById("legendGrayRight");
+        const legendHandleMin  = document.getElementById("legendHandleMin");
+        const legendHandleMax  = document.getElementById("legendHandleMax");
+
+        function updateFilterUI() {
+            const r = getFilterRange();
+            const pctMin = r.min * 100;
+            const pctMax = r.max * 100;
+            if (legendGrayLeft) legendGrayLeft.style.width = pctMin + "%";
+            if (legendGrayRight) legendGrayRight.style.width = (100 - pctMax) + "%";
+            if (legendHandleMin) legendHandleMin.style.left = pctMin + "%";
+            if (legendHandleMax) legendHandleMax.style.left = pctMax + "%";
         }
 
-        // If legend loaded, initialise legend UI
-        if (legend) {
-            const legendEl = document.getElementById("legend");
-            const attrEl = document.getElementById("legendAttribute");
-            const minEl = document.getElementById("legendMin");
-            const maxEl = document.getElementById("legendMax");
-            const barEl = document.getElementById("legendBar");
+        function formatLegendValue(val, unit) {
+            if (Math.abs(val) >= 1e6) return (val / 1e6).toFixed(1) + "M";
+            if (Math.abs(val) >= 1e3) return (val / 1e3).toFixed(1) + "k";
+            if (Number.isInteger(val)) return String(val);
+            return val.toFixed(2);
+        }
 
-            if (legendEl && attrEl && minEl && maxEl && barEl) {
-                legendEl.classList.remove("hidden");
-                attrEl.textContent = legend.attribute;
-                minEl.textContent = legend.value_min.toFixed(0);
-                maxEl.textContent = legend.value_max.toFixed(0);
-
-                // Build CSS linear-gradient from stops
-                const stops = Array.isArray(legend.stops) ? legend.stops.slice().sort((a, b) => a.t - b.t) : [];
-                const parts = stops.map((s) => {
-                    const rgb = s.rgb255 || (s.rgb01 && s.rgb01.map((v) => Math.round(v * 255))) || [0, 0, 0];
-                    const pct = Math.round((s.t ?? 0) * 100);
-                    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]}) ${pct}%`;
-                });
-                if (parts.length > 0) {
-                    barEl.style.background = `linear-gradient(90deg, ${parts.join(", ")})`;
-                }
+        function updateLegend(field) {
+            if (!field) {
+                legendEl.classList.add("hidden");
+                return;
             }
+            const meta = ATTRIBUTES.find(a => a.field === field);
+            if (!meta) { legendEl.classList.add("hidden"); return; }
+
+            const min = meta.min;
+            const max = meta.max;
+            const range = max - min;
+
+            legendEl.classList.remove("hidden");
+            legendTitleEl.textContent = meta.label;
+            legendAttrEl.textContent = meta.unit ? meta.field + " (" + meta.unit + ")" : meta.field;
+            legendMinEl.textContent = formatLegendValue(min, meta.unit);
+            legendMaxEl.textContent = formatLegendValue(max, meta.unit);
+
+            if (legendTick1El && legendTick2El && legendTick3El) {
+                legendTick1El.textContent = formatLegendValue(min + 0.25 * range, meta.unit);
+                legendTick2El.textContent = formatLegendValue(min + 0.50 * range, meta.unit);
+                legendTick3El.textContent = formatLegendValue(min + 0.75 * range, meta.unit);
+            }
+
+            legendBarEl.style.background = getCurrentRampCSSGradient();
+            updateFilterUI();
         }
 
         // --- Load tilesets ---
         try {
             pointCloudTileset = await loadTilesets(viewer);
+
+            if (pointCloudTileset) {
+                applyDefaultStyle(pointCloudTileset);
+                setScreenSpaceSize(pointCloudTileset, true);
+                if (STYLING_CONFIG.defaultAttribute) {
+                    setStyleAttribute(pointCloudTileset, STYLING_CONFIG.defaultAttribute);
+                }
+                pointCloudTileset.tileLoad.addEventListener(function () {
+                    runDiagnostic(pointCloudTileset);
+                });
+            }
         } catch (err) {
             document.getElementById("loadingOverlay").querySelector("p").textContent =
                 "Failed to load tileset. Check your Cesium ion token and asset ID.";
@@ -217,19 +442,140 @@
 
         document.getElementById("loadingOverlay").classList.add("hidden");
 
-        // --- Click to inspect point properties ---
-        viewer.screenSpaceEventHandler.setInputAction(function (movement) {
-            var feature = viewer.scene.pick(movement.position);
-            if (feature instanceof Cesium.Cesium3DTileFeature) {
-                var ids = feature.getPropertyIds ? feature.getPropertyIds() : (feature.getPropertyNames ? feature.getPropertyNames() : []);
-                console.group("[Cesium Point Cloud] Clicked feature (" + ids.length + " properties)");
-                console.log("Property names:", ids);
-                for (var i = 0; i < ids.length; i++) {
-                    console.log("  " + ids[i] + ":", feature.getProperty(ids[i]));
+        // Apply default colour-by and legend once tileset is ready
+        if (pointCloudTileset && STYLING_CONFIG.defaultAttribute) {
+            updateLegend(STYLING_CONFIG.defaultAttribute);
+        }
+
+        // --- Populate style panel ---
+        const colorBySelect     = document.getElementById("colorBySelect");
+        const colorRampSelect   = document.getElementById("colorRampSelect");
+        const sizeBySelect      = document.getElementById("sizeBySelect");
+        const sizeScaleSlider   = document.getElementById("sizeScaleSlider");
+        const sizeScaleValue    = document.getElementById("sizeScaleValue");
+        const screenSizeToggle  = document.getElementById("screenSizeToggle");
+
+        // -- Colour-by attribute --
+        if (colorBySelect) {
+            const noneOpt = document.createElement("option");
+            noneOpt.value = "";
+            noneOpt.textContent = "(Baked RGB)";
+            colorBySelect.appendChild(noneOpt);
+
+            ATTRIBUTES.forEach((attr) => {
+                const opt = document.createElement("option");
+                opt.value = attr.field;
+                opt.textContent = attr.label;
+                colorBySelect.appendChild(opt);
+            });
+            colorBySelect.value = STYLING_CONFIG.defaultAttribute || "";
+            colorBySelect.addEventListener("change", (e) => {
+                const field = e.target.value;
+                if (pointCloudTileset) {
+                    if (field) {
+                        setStyleAttribute(pointCloudTileset, field);
+                    } else {
+                        pointCloudTileset.customShader = undefined;
+                    }
                 }
-                console.groupEnd();
+                updateLegend(field);
+                if (field) updateFilterUI();
+            });
+        }
+
+        // -- Colour ramp --
+        if (colorRampSelect) {
+            const ramps = getColorRampNames();
+            ramps.forEach((r) => {
+                const opt = document.createElement("option");
+                opt.value = r.id;
+                opt.textContent = r.label;
+                colorRampSelect.appendChild(opt);
+            });
+            colorRampSelect.value = STYLING_CONFIG.defaultColorRamp || "heat";
+            colorRampSelect.addEventListener("change", (e) => {
+                if (pointCloudTileset && colorBySelect.value) {
+                    setColorRamp(pointCloudTileset, e.target.value);
+                }
+                updateLegend(colorBySelect.value);
+            });
+        }
+
+        // -- Size-by attribute --
+        if (sizeBySelect) {
+            ATTRIBUTES.forEach((attr) => {
+                const opt = document.createElement("option");
+                opt.value = attr.field;
+                opt.textContent = attr.label;
+                sizeBySelect.appendChild(opt);
+            });
+            sizeBySelect.addEventListener("change", (e) => {
+                if (pointCloudTileset) {
+                    setSizeAttribute(pointCloudTileset, e.target.value || null);
+                }
+            });
+        }
+
+        // -- Global point size slider --
+        if (sizeScaleSlider && sizeScaleValue) {
+            sizeScaleSlider.value = String(STYLING_CONFIG.defaultPointSize || 3);
+            sizeScaleValue.textContent = sizeScaleSlider.value;
+            sizeScaleSlider.addEventListener("input", () => {
+                sizeScaleValue.textContent = sizeScaleSlider.value;
+                if (pointCloudTileset) {
+                    setPointSize(pointCloudTileset, Number(sizeScaleSlider.value));
+                }
+            });
+        }
+
+        // -- Screen-space sizing toggle --
+        if (screenSizeToggle) {
+            screenSizeToggle.checked = true;
+            screenSizeToggle.addEventListener("change", (e) => {
+                if (pointCloudTileset) {
+                    setScreenSpaceSize(pointCloudTileset, e.target.checked);
+                }
+            });
+        }
+
+        // --- Legend range slider: drag handles to filter points by value ---
+        (function () {
+            let dragging = null;
+            function fracFromEvent(e) {
+                if (!legendBarWrapper) return 0.5;
+                const rect = legendBarWrapper.getBoundingClientRect();
+                const x = ("touches" in e) ? e.touches[0].clientX : e.clientX;
+                return Math.max(0, Math.min(1, (x - rect.left) / rect.width));
             }
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+            function onMove(e) {
+                if (!dragging || !pointCloudTileset) return;
+                const frac = fracFromEvent(e);
+                const r = getFilterRange();
+                if (dragging === "min") {
+                    const newMin = Math.min(frac, r.max - 0.01);
+                    setFilterRange(pointCloudTileset, newMin, r.max);
+                } else {
+                    const newMax = Math.max(frac, r.min + 0.01);
+                    setFilterRange(pointCloudTileset, r.min, newMax);
+                }
+                updateFilterUI();
+            }
+            function onUp() {
+                dragging = null;
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+                document.removeEventListener("touchmove", onMove, { passive: true });
+                document.removeEventListener("touchend", onUp);
+            }
+            if (legendHandleMin) {
+                legendHandleMin.addEventListener("mousedown", (e) => { e.preventDefault(); dragging = "min"; document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp); });
+                legendHandleMin.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = "min"; document.addEventListener("touchmove", onMove, { passive: true }); document.addEventListener("touchend", onUp); }, { passive: false });
+            }
+            if (legendHandleMax) {
+                legendHandleMax.addEventListener("mousedown", (e) => { e.preventDefault(); dragging = "max"; document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp); });
+                legendHandleMax.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = "max"; document.addEventListener("touchmove", onMove, { passive: true }); document.addEventListener("touchend", onUp); }, { passive: false });
+            }
+        })();
 
         // --- Performance stats ---
         const fpsEl = document.getElementById("fpsValue");
