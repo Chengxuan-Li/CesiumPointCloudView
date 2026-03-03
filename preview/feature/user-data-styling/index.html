@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CesiumJS Point Cloud Viewer</title>
+
+    <script>window.CESIUM_ION_TOKEN = window.CESIUM_ION_TOKEN || "FILL_ME";</script>
+    <script src="./src/token.local.js"></script>
+    <!-- CesiumJS -->
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.127/Build/Cesium/Widgets/widgets.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:wdth,wght@25..151,100..1000&display=swap" rel="stylesheet" />
+
+    <style>
+        /* EnergyAtlas design tokens (match main.css) */
+        :root {
+            --primary-color: #003978;
+            --secondary-color: #f1392a;
+            --accent-color: #4da3ff;
+            --text-dark: #e5e5e5;
+            --text-light: #b0b0b0;
+            --text-muted: #808080;
+            --bg-light: #2a2a2a;
+            --bg-white: #3a3a3a;
+            --bg-dark-surface: #1a1a1a;
+            --border-color: #404040;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --font-family: 'Roboto Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --border-radius: 8px;
+            --border-radius-sm: 4px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: var(--font-family);
+            font-weight: 200;
+            color: var(--text-dark);
+            background: #000;
+        }
+
+        #cesiumContainer {
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+        }
+
+        /* ---------- stats bar ---------- */
+        #statsBar {
+            position: absolute;
+            bottom: var(--spacing-sm);
+            left: var(--spacing-sm);
+            display: flex;
+            gap: var(--spacing-md);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xs) var(--spacing-md);
+            color: var(--text-light);
+            font-size: var(--font-size-sm);
+            font-variant-numeric: tabular-nums;
+            z-index: 10;
+        }
+
+        #statsBar .stat-item strong {
+            color: var(--text-dark);
+        }
+
+        /* ---------- loading overlay ---------- */
+        #loadingOverlay {
+            position: absolute; inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-dark-surface);
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        #loadingOverlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: var(--spacing-md);
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #loadingOverlay p {
+            color: var(--text-light);
+            font-size: var(--font-size-sm);
+        }
+
+        .cesium-viewer-bottom { opacity: 0.4; }
+
+        /* ---------- legend ---------- */
+        #legend {
+            position: absolute;
+            bottom: var(--spacing-sm);
+            right: var(--spacing-sm);
+            min-width: 400px;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--border-radius);
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-dark);
+            font-size: var(--font-size-xs);
+            font-family: var(--font-family);
+            z-index: 10;
+        }
+
+        #legend.hidden {
+            display: none;
+        }
+
+        #legendTitle {
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        #legendAttribute {
+            font-size: var(--font-size-xs);
+            color: var(--text-light);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        #legendBarWrapper {
+            position: relative;
+            height: 14px;
+            border-radius: 7px;
+            overflow: visible;
+            background: var(--bg-dark-surface);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        #legendBar {
+            position: absolute;
+            inset: 0;
+            border-radius: 7px;
+            overflow: hidden;
+            background: var(--border-color);
+        }
+
+        .legend-filter-gray {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        #legendGrayLeft {
+            left: 0;
+            border-radius: 7px 0 0 7px;
+        }
+
+        #legendGrayRight {
+            right: 0;
+            border-radius: 0 7px 7px 0;
+        }
+
+        #legendRangeSlider {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        #legendRangeSlider .legend-handle {
+            pointer-events: auto;
+            position: absolute;
+            top: 50%;
+            width: 14px;
+            height: 14px;
+            margin-left: -7px;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            background: var(--bg-white);
+            border: 2px solid var(--accent-color);
+            cursor: ew-resize;
+            z-index: 2;
+        }
+
+        #legendLabels {
+            display: flex;
+            justify-content: space-between;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-light);
+            font-size: var(--font-size-xs);
+        }
+
+        #legendLabels .legend-tick {
+            flex: 0 0 auto;
+        }
+
+        /* ---------- style control panel (match jobRunner panel + form-group) ---------- */
+        #stylePanel {
+            position: absolute;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
+            width: 260px;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            color: var(--text-dark);
+            font-size: var(--font-size-sm);
+            padding: var(--spacing-md);
+            z-index: 10;
+        }
+
+        #stylePanel h2 {
+            font-size: var(--font-size-base);
+            font-weight: 400;
+            margin: 0 0 var(--spacing-sm) 0;
+        }
+
+        .style-row {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .style-row label {
+            display: block;
+            margin-bottom: 2px;
+            color: var(--text-dark);
+            font-size: var(--font-size-sm);
+            font-weight: 400;
+        }
+
+        .style-row select,
+        .style-row input[type="range"] {
+            width: 100%;
+        }
+
+        .style-row select {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            color: var(--text-dark);
+            padding: 2px var(--spacing-sm);
+            font-family: var(--font-family);
+            font-size: var(--font-size-sm);
+            height: 24px;
+            line-height: 20px;
+            box-sizing: border-box;
+        }
+
+        .style-row input[type="range"] {
+            accent-color: var(--accent-color);
+        }
+
+        .style-row input[type="checkbox"] {
+            accent-color: var(--accent-color);
+            margin-right: var(--spacing-xs);
+        }
+    </style>
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <!-- loading overlay -->
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <p>Loading tileset&hellip;</p>
+    </div>
+
+    <!-- performance stats -->
+    <div id="statsBar">
+        <div class="stat-item">FPS: <strong id="fpsValue">--</strong></div>
+        <div class="stat-item">Tiles: <strong id="tilesValue">--</strong></div>
+    </div>
+
+    <!-- style control panel -->
+    <div id="stylePanel">
+        <h2>Style</h2>
+
+        <div class="style-row">
+            <label for="colorBySelect">Colour by attribute</label>
+            <select id="colorBySelect"></select>
+        </div>
+
+        <div class="style-row">
+            <label for="colorRampSelect">Colour ramp</label>
+            <select id="colorRampSelect"></select>
+        </div>
+
+        <div class="style-row">
+            <label for="sizeBySelect">Size by attribute</label>
+            <select id="sizeBySelect">
+                <option value="">(None)</option>
+            </select>
+        </div>
+
+        <div class="style-row">
+            <label for="sizeScaleSlider">Global point size</label>
+            <input type="range" id="sizeScaleSlider" min="0.5" max="10" step="0.5" />
+            <div style="text-align:right; margin-top:2px;">
+                <span id="sizeScaleValue">--</span>
+            </div>
+        </div>
+
+        <div class="style-row">
+            <label for="normalOffsetSlider">Normal offset (m)</label>
+            <input type="range" id="normalOffsetSlider" min="-2" max="2" step="0.1" />
+            <div style="text-align:right; margin-top:2px;">
+                <span id="normalOffsetValue">0.0</span>
+            </div>
+        </div>
+
+        <div class="style-row">
+            <label>
+                <input type="checkbox" id="screenSizeToggle" checked />
+                Attenuation
+            </label>
+        </div>
+    </div>
+
+    <!-- legend -->
+    <div id="legend" class="hidden">
+        <div id="legendTitle">Legend</div>
+        <div id="legendAttribute"></div>
+        <div id="legendBarWrapper">
+            <div id="legendBar"></div>
+            <div id="legendGrayLeft" class="legend-filter-gray"></div>
+            <div id="legendGrayRight" class="legend-filter-gray"></div>
+            <div id="legendRangeSlider">
+                <span id="legendHandleMin" class="legend-handle" data-handle="min"></span>
+                <span id="legendHandleMax" class="legend-handle" data-handle="max"></span>
+            </div>
+        </div>
+        <div id="legendLabels">
+            <span id="legendMin" class="legend-tick">0</span>
+            <span id="legendTick1" class="legend-tick"></span>
+            <span id="legendTick2" class="legend-tick"></span>
+            <span id="legendTick3" class="legend-tick"></span>
+            <span id="legendMax" class="legend-tick">0</span>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initViewer } from "./src/viewer.js";
+        import { loadTilesets, runDiagnostic } from "./src/tilesets.js";
+        import {
+            applyDefaultStyle, setStyleAttribute, setColorRamp,
+            setSizeAttribute, setPointSize, setScreenSpaceSize,
+            getColorRampNames, getCurrentRampCSSGradient, setFilterRange, getFilterRange,
+            setNormalOffset
+        } from "./src/styling.js";
+        import { ATTRIBUTES, STYLING_CONFIG } from "./src/config.js";
+
+        const viewer = initViewer();
+        let pointCloudTileset = null;
+
+        // --- Legend helpers ---
+        const legendEl       = document.getElementById("legend");
+        const legendTitleEl   = document.getElementById("legendTitle");
+        const legendAttrEl    = document.getElementById("legendAttribute");
+        const legendMinEl     = document.getElementById("legendMin");
+        const legendMaxEl     = document.getElementById("legendMax");
+        const legendTick1El   = document.getElementById("legendTick1");
+        const legendTick2El   = document.getElementById("legendTick2");
+        const legendTick3El   = document.getElementById("legendTick3");
+        const legendBarEl     = document.getElementById("legendBar");
+        const legendBarWrapper = document.getElementById("legendBarWrapper");
+        const legendGrayLeft   = document.getElementById("legendGrayLeft");
+        const legendGrayRight  = document.getElementById("legendGrayRight");
+        const legendHandleMin  = document.getElementById("legendHandleMin");
+        const legendHandleMax  = document.getElementById("legendHandleMax");
+
+        function updateFilterUI() {
+            const r = getFilterRange();
+            const pctMin = r.min * 100;
+            const pctMax = r.max * 100;
+            if (legendGrayLeft) legendGrayLeft.style.width = pctMin + "%";
+            if (legendGrayRight) legendGrayRight.style.width = (100 - pctMax) + "%";
+            if (legendHandleMin) legendHandleMin.style.left = pctMin + "%";
+            if (legendHandleMax) legendHandleMax.style.left = pctMax + "%";
+        }
+
+        function formatLegendValue(val, unit) {
+            if (Math.abs(val) >= 1e6) return (val / 1e6).toFixed(1) + "M";
+            if (Math.abs(val) >= 1e3) return (val / 1e3).toFixed(1) + "k";
+            if (Number.isInteger(val)) return String(val);
+            return val.toFixed(2);
+        }
+
+        function updateLegend(field) {
+            if (!field) {
+                legendEl.classList.add("hidden");
+                return;
+            }
+            const meta = ATTRIBUTES.find(a => a.field === field);
+            if (!meta) { legendEl.classList.add("hidden"); return; }
+
+            const min = meta.min;
+            const max = meta.max;
+            const range = max - min;
+
+            legendEl.classList.remove("hidden");
+            legendTitleEl.textContent = meta.label;
+            legendAttrEl.textContent = meta.unit ? meta.field + " (" + meta.unit + ")" : meta.field;
+            legendMinEl.textContent = formatLegendValue(min, meta.unit);
+            legendMaxEl.textContent = formatLegendValue(max, meta.unit);
+
+            if (legendTick1El && legendTick2El && legendTick3El) {
+                legendTick1El.textContent = formatLegendValue(min + 0.25 * range, meta.unit);
+                legendTick2El.textContent = formatLegendValue(min + 0.50 * range, meta.unit);
+                legendTick3El.textContent = formatLegendValue(min + 0.75 * range, meta.unit);
+            }
+
+            legendBarEl.style.background = getCurrentRampCSSGradient();
+            updateFilterUI();
+        }
+
+        // --- Load tilesets ---
+        try {
+            pointCloudTileset = await loadTilesets(viewer);
+
+            if (pointCloudTileset) {
+                applyDefaultStyle(pointCloudTileset);
+                setScreenSpaceSize(pointCloudTileset, true);
+                pointCloudTileset.tileLoad.addEventListener(function () {
+                    runDiagnostic(pointCloudTileset);
+                });
+            }
+        } catch (err) {
+            document.getElementById("loadingOverlay").querySelector("p").textContent =
+                "Failed to load tileset. Check your Cesium ion token and asset ID.";
+            console.error(err);
+        }
+
+        document.getElementById("loadingOverlay").classList.add("hidden");
+
+        // Apply default colour-by and legend once tileset is ready
+        if (pointCloudTileset && STYLING_CONFIG.defaultAttribute) {
+            updateLegend(STYLING_CONFIG.defaultAttribute);
+        }
+
+        // --- Populate style panel ---
+        const colorBySelect     = document.getElementById("colorBySelect");
+        const colorRampSelect   = document.getElementById("colorRampSelect");
+        const sizeBySelect      = document.getElementById("sizeBySelect");
+        const sizeScaleSlider   = document.getElementById("sizeScaleSlider");
+        const sizeScaleValue    = document.getElementById("sizeScaleValue");
+        const normalOffsetSlider = document.getElementById("normalOffsetSlider");
+        const normalOffsetValue  = document.getElementById("normalOffsetValue");
+        const screenSizeToggle  = document.getElementById("screenSizeToggle");
+
+        // -- Colour-by attribute --
+        if (colorBySelect) {
+            const noneOpt = document.createElement("option");
+            noneOpt.value = "";
+            noneOpt.textContent = "(Baked RGB)";
+            colorBySelect.appendChild(noneOpt);
+
+            ATTRIBUTES.forEach((attr) => {
+                const opt = document.createElement("option");
+                opt.value = attr.field;
+                opt.textContent = attr.label;
+                colorBySelect.appendChild(opt);
+            });
+            colorBySelect.value = STYLING_CONFIG.defaultAttribute || "";
+            colorBySelect.addEventListener("change", (e) => {
+                const field = e.target.value;
+                if (pointCloudTileset) {
+                    if (field) {
+                        setStyleAttribute(pointCloudTileset, field);
+                    } else {
+                        pointCloudTileset.customShader = undefined;
+                    }
+                }
+                updateLegend(field);
+                if (field) updateFilterUI();
+            });
+        }
+
+        // -- Colour ramp --
+        if (colorRampSelect) {
+            const ramps = getColorRampNames();
+            ramps.forEach((r) => {
+                const opt = document.createElement("option");
+                opt.value = r.id;
+                opt.textContent = r.label;
+                colorRampSelect.appendChild(opt);
+            });
+            colorRampSelect.value = STYLING_CONFIG.defaultColorRamp || "heat";
+            colorRampSelect.addEventListener("change", (e) => {
+                if (pointCloudTileset && colorBySelect.value) {
+                    setColorRamp(pointCloudTileset, e.target.value);
+                }
+                updateLegend(colorBySelect.value);
+            });
+        }
+
+        // -- Size-by attribute --
+        if (sizeBySelect) {
+            ATTRIBUTES.forEach((attr) => {
+                const opt = document.createElement("option");
+                opt.value = attr.field;
+                opt.textContent = attr.label;
+                sizeBySelect.appendChild(opt);
+            });
+            sizeBySelect.addEventListener("change", (e) => {
+                if (pointCloudTileset) {
+                    setSizeAttribute(pointCloudTileset, e.target.value || null);
+                }
+            });
+        }
+
+        // -- Global point size slider --
+        if (sizeScaleSlider && sizeScaleValue) {
+            sizeScaleSlider.value = String(STYLING_CONFIG.defaultPointSize || 3);
+            sizeScaleValue.textContent = sizeScaleSlider.value;
+            sizeScaleSlider.addEventListener("input", () => {
+                sizeScaleValue.textContent = sizeScaleSlider.value;
+                if (pointCloudTileset) {
+                    setPointSize(pointCloudTileset, Number(sizeScaleSlider.value));
+                }
+            });
+        }
+
+        // -- Normal offset slider --
+        if (normalOffsetSlider && normalOffsetValue) {
+            normalOffsetSlider.value = "0";
+            normalOffsetValue.textContent = "0.0";
+            normalOffsetSlider.addEventListener("input", () => {
+                normalOffsetValue.textContent = normalOffsetSlider.value;
+                if (pointCloudTileset) {
+                    setNormalOffset(pointCloudTileset, Number(normalOffsetSlider.value));
+                }
+            });
+        }
+
+        // -- Screen-space sizing toggle --
+        if (screenSizeToggle) {
+            screenSizeToggle.checked = true;
+            screenSizeToggle.addEventListener("change", (e) => {
+                if (pointCloudTileset) {
+                    setScreenSpaceSize(pointCloudTileset, e.target.checked);
+                }
+            });
+        }
+
+        // --- Legend range slider: drag handles to filter points by value ---
+        (function () {
+            let dragging = null;
+            function fracFromEvent(e) {
+                if (!legendBarWrapper) return 0.5;
+                const rect = legendBarWrapper.getBoundingClientRect();
+                const x = ("touches" in e) ? e.touches[0].clientX : e.clientX;
+                return Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+            }
+            function onMove(e) {
+                if (!dragging || !pointCloudTileset) return;
+                const frac = fracFromEvent(e);
+                const r = getFilterRange();
+                if (dragging === "min") {
+                    const newMin = Math.min(frac, r.max - 0.01);
+                    setFilterRange(pointCloudTileset, newMin, r.max);
+                } else {
+                    const newMax = Math.max(frac, r.min + 0.01);
+                    setFilterRange(pointCloudTileset, r.min, newMax);
+                }
+                updateFilterUI();
+            }
+            function onUp() {
+                dragging = null;
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+                document.removeEventListener("touchmove", onMove, { passive: true });
+                document.removeEventListener("touchend", onUp);
+            }
+            if (legendHandleMin) {
+                legendHandleMin.addEventListener("mousedown", (e) => { e.preventDefault(); dragging = "min"; document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp); });
+                legendHandleMin.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = "min"; document.addEventListener("touchmove", onMove, { passive: true }); document.addEventListener("touchend", onUp); }, { passive: false });
+            }
+            if (legendHandleMax) {
+                legendHandleMax.addEventListener("mousedown", (e) => { e.preventDefault(); dragging = "max"; document.addEventListener("mousemove", onMove); document.addEventListener("mouseup", onUp); });
+                legendHandleMax.addEventListener("touchstart", (e) => { e.preventDefault(); dragging = "max"; document.addEventListener("touchmove", onMove, { passive: true }); document.addEventListener("touchend", onUp); }, { passive: false });
+            }
+        })();
+
+        // --- Performance stats ---
+        const fpsEl = document.getElementById("fpsValue");
+        const tilesEl = document.getElementById("tilesValue");
+
+        let frameCount = 0;
+        let lastSampleTime = performance.now();
+        let currentFps = 0;
+
+        viewer.scene.postRender.addEventListener(() => {
+            frameCount++;
+            const now = performance.now();
+            const dt = now - lastSampleTime;
+            if (dt >= 500) {
+                currentFps = (frameCount * 1000) / dt;
+                frameCount = 0;
+                lastSampleTime = now;
+                fpsEl.textContent = Math.round(currentFps);
+            }
+
+            if (pointCloudTileset) {
+                tilesEl.textContent = pointCloudTileset.tilesLoaded;
+            }
+        });
+    </script>
+</body>
+</html>

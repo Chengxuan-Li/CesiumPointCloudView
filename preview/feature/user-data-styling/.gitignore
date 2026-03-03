@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# Node / tooling (if you add any later)
+node_modules/
+dist/
+build/
+coverage/
+
+# Cursor / local tooling
+.cursor/
+
+src/token.local.js
