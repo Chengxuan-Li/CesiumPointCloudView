@@ -1,0 +1,34 @@
+name: Deploy branch preview
+
+on:
+  push:
+    branches-ignore:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject Cesium ion token
+        run: |
+          mkdir -p src
+          echo "window.CESIUM_ION_TOKEN = '${{ secrets.CESIUM_ION_TOKEN }}';" > src/token.local.js
+
+      - name: Get branch name
+        id: vars
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+      - name: Deploy preview
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: .
+          destination_dir: preview/${{ steps.vars.outputs.branch }}
+          keep_files: true
