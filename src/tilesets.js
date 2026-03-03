@@ -1,4 +1,5 @@
-import { CESIUM_CONFIG, PERFORMANCE_CONFIG, VERTICAL_OFFSET_METERS } from "./config.js";
+import { CESIUM_CONFIG, PERFORMANCE_CONFIG, VERTICAL_OFFSET_METERS, STYLING_CONFIG } from "./config.js";
+import { registerAvailableProperties, setStyleAttribute } from "./styling.js";
 
 let google3DTileset = null;
 let diagnosticDone = false;
@@ -12,6 +13,8 @@ export function runDiagnostic(tileset) {
     diagnosticDone = true;
 
     console.group("[Cesium Point Cloud] Tileset Diagnostic");
+
+    const discoveredProps = new Set();
 
     // Tileset-level (public API)
     console.log("tileset.properties:", tileset.properties);
@@ -52,6 +55,7 @@ export function runDiagnostic(tileset) {
                     var propNames = Object.keys(inner._properties);
                     console.log("Batch table _properties (attribute names):", propNames);
                     propNames.forEach(function (name) {
+                        discoveredProps.add(name);
                         var p = inner._properties[name];
                         console.log("  " + name + ":", typeof p, p && p.constructor?.name, p && p.length !== undefined ? "length=" + p.length : "");
                     });
@@ -99,8 +103,15 @@ export function runDiagnostic(tileset) {
                                 pTables.forEach(function (pt, i) {
                                     var keys = pt && (Object.keys(pt._propertyIds || pt) || Object.keys(pt));
                                     console.log("  propertyTable[" + i + "] keys:", keys);
-                                    if (pt && pt._propertyIds) console.log("    _propertyIds:", pt._propertyIds);
-                                    if (pt && pt._properties) console.log("    _properties:", Object.keys(pt._properties));
+                                    if (pt && pt._propertyIds) {
+                                        console.log("    _propertyIds:", pt._propertyIds);
+                                        pt._propertyIds.forEach(function (id) { discoveredProps.add(id); });
+                                    }
+                                    if (pt && pt._properties) {
+                                        var pKeys = Object.keys(pt._properties);
+                                        console.log("    _properties:", pKeys);
+                                        pKeys.forEach(function (k) { discoveredProps.add(k); });
+                                    }
                                 });
                             }
                             var pAttrs = sm._propertyAttributes || sm.propertyAttributes;
@@ -108,9 +119,16 @@ export function runDiagnostic(tileset) {
                                 console.log("structuralMetadata _propertyAttributes count:", pAttrs.length);
                                 pAttrs.forEach(function (pa, i) {
                                     console.log("  propertyAttribute[" + i + "]:", pa && Object.keys(pa));
-                                    if (pa && pa._propertyIds) console.log("    _propertyIds:", pa._propertyIds);
+                                    if (pa && pa._propertyIds) {
+                                        console.log("    _propertyIds:", pa._propertyIds);
+                                        pa._propertyIds.forEach(function (id) { discoveredProps.add(id); });
+                                    }
                                     if (pa && pa._class !== undefined) console.log("    _class:", pa._class);
-                                    if (pa && pa._properties) console.log("    _properties:", Object.keys(pa._properties));
+                                    if (pa && pa._properties) {
+                                        var paKeys = Object.keys(pa._properties);
+                                        console.log("    _properties:", paKeys);
+                                        paKeys.forEach(function (k) { discoveredProps.add(k); });
+                                    }
                                 });
                             }
                         }
@@ -153,6 +171,17 @@ export function runDiagnostic(tileset) {
     })(tileset.root);
 
     if (!found) console.log("No tile with pointsLength/featuresLength > 0 found. Tiles may still be loading.");
+
+    const propArray = Array.from(discoveredProps);
+    console.log("[Cesium Point Cloud] Discovered structural metadata properties:", propArray);
+    try {
+        registerAvailableProperties(propArray);
+        if (STYLING_CONFIG && STYLING_CONFIG.defaultAttribute) {
+            setStyleAttribute(tileset, STYLING_CONFIG.defaultAttribute);
+        }
+    } catch (e) {
+        console.warn("[Cesium Point Cloud] Failed to register available properties or apply default style:", e && e.message);
+    }
     console.groupEnd();
 }
 

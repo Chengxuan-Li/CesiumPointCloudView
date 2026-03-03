@@ -317,6 +317,14 @@
         </div>
 
         <div class="style-row">
+            <label for="normalOffsetSlider">Normal offset (m)</label>
+            <input type="range" id="normalOffsetSlider" min="-2" max="2" step="0.1" />
+            <div style="text-align:right; margin-top:2px;">
+                <span id="normalOffsetValue">0.0</span>
+            </div>
+        </div>
+
+        <div class="style-row">
             <label>
                 <input type="checkbox" id="screenSizeToggle" checked />
                 Attenuation
@@ -352,7 +360,8 @@
         import {
             applyDefaultStyle, setStyleAttribute, setColorRamp,
             setSizeAttribute, setPointSize, setScreenSpaceSize,
-            getColorRampNames, getCurrentRampCSSGradient, setFilterRange, getFilterRange
+            getColorRampNames, getCurrentRampCSSGradient, setFilterRange, getFilterRange,
+            setNormalOffset
         } from "./src/styling.js";
         import { ATTRIBUTES, STYLING_CONFIG } from "./src/config.js";
 
@@ -427,9 +436,6 @@
             if (pointCloudTileset) {
                 applyDefaultStyle(pointCloudTileset);
                 setScreenSpaceSize(pointCloudTileset, true);
-                if (STYLING_CONFIG.defaultAttribute) {
-                    setStyleAttribute(pointCloudTileset, STYLING_CONFIG.defaultAttribute);
-                }
                 pointCloudTileset.tileLoad.addEventListener(function () {
                     runDiagnostic(pointCloudTileset);
                 });
@@ -453,6 +459,8 @@
         const sizeBySelect      = document.getElementById("sizeBySelect");
         const sizeScaleSlider   = document.getElementById("sizeScaleSlider");
         const sizeScaleValue    = document.getElementById("sizeScaleValue");
+        const normalOffsetSlider = document.getElementById("normalOffsetSlider");
+        const normalOffsetValue  = document.getElementById("normalOffsetValue");
         const screenSizeToggle  = document.getElementById("screenSizeToggle");
 
         // -- Colour-by attribute --
@@ -524,6 +532,18 @@
                 sizeScaleValue.textContent = sizeScaleSlider.value;
                 if (pointCloudTileset) {
                     setPointSize(pointCloudTileset, Number(sizeScaleSlider.value));
+                }
+            });
+        }
+
+        // -- Normal offset slider --
+        if (normalOffsetSlider && normalOffsetValue) {
+            normalOffsetSlider.value = "0";
+            normalOffsetValue.textContent = "0.0";
+            normalOffsetSlider.addEventListener("input", () => {
+                normalOffsetValue.textContent = normalOffsetSlider.value;
+                if (pointCloudTileset) {
+                    setNormalOffset(pointCloudTileset, Number(normalOffsetSlider.value));
                 }
             });
         }

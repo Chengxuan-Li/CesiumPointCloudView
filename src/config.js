@@ -31,7 +31,7 @@
  * If no matching key is found, the default city is used.
  */
 export const CITY_ASSETS = {
-    albany: 4492611,
+    albany: 4497409,//4492611,
     tompkins: 4490407,
 };
 
@@ -129,11 +129,52 @@ export const PERFORMANCE_CONFIG = {
  * properties below are available.
  */
 export const ATTRIBUTES = [
-    { field: "AnnualRadiation_Wh_m2",  label: "Annual Radiation",       unit: "Wh/m²", min: 0, max: 1800000 },
-    { field: "MeanSunlitFraction",     label: "Mean Sunlit Fraction",   unit: "",      min: 0, max: 1        },
-    { field: "HorizontalViewFactor",   label: "Horizontal View Factor", unit: "",      min: 0, max: 1        },
-    { field: "SkyViewFactor",          label: "Sky View Factor",        unit: "",      min: 0, max: 1        },
-    { field: "Area_m2",               label: "Area",                   unit: "m²",    min: 0, max: 100      },
+    {
+        field: "AnnualRadiation_Wh_m2",
+        label: "Annual Radiation",
+        unit: "kWh/m²",
+        min: 0,
+        max: 1600,
+        // Aliases in some GLTF/GLB exports:
+        //   "Radiation" (and possibly "_Radiation")
+        aliases: ["Radiation"],
+    },
+    {
+        field: "MeanSunlitFraction",
+        label: "Mean Sunlit Fraction",
+        unit: "",
+        min: 0,
+        max: 1,
+        // Aliases: "SunlitFrac", possibly with "_" prefix.
+        aliases: ["SunlitFrac"],
+    },
+    {
+        field: "HorizontalViewFactor",
+        label: "Horizontal View Factor",
+        unit: "",
+        min: 0,
+        max: 1,
+        // Aliases: "HorizView"
+        aliases: ["HorizView"],
+    },
+    {
+        field: "SkyViewFactor",
+        label: "Sky View Factor",
+        unit: "",
+        min: 0,
+        max: 1,
+        // Aliases: "SkyView"
+        aliases: ["SkyView"],
+    },
+    {
+        field: "Area_m2",
+        label: "Area",
+        unit: "m²",
+        min: 0,
+        max: 100,
+        // Aliases: "SensorArea" (ShadingSensorArea[m2])
+        aliases: ["SensorArea"],
+    },
 ];
 
 /**

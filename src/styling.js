@@ -126,15 +126,58 @@ let currentColorAttribute = STYLING_CONFIG.defaultAttribute;
 let currentSizeAttribute = null;
 let currentSizeScale = STYLING_CONFIG.defaultPointSize || 3;
 let currentRamp = STYLING_CONFIG.defaultColorRamp || "heat";
+// Structural metadata property names discovered at runtime (via tilesets.js)
+let availablePropertyNames = null;
 /** Filter range for the colour attribute: normalized 0–1. Points outside [min,max] are hidden. */
 let currentFilterMinNorm = 0;
 let currentFilterMaxNorm = 1;
+/** Per-point normal offset distance in model units (meters). */
+let currentNormalOffset = 0.0;
+// Resolved property names for normals, if present
+let normalXPropName = null;
+let normalYPropName = null;
+let normalZPropName = null;
 
 function getAttributeMeta(field) {
     return (
         ATTRIBUTES.find(function (a) { return a.field === field; }) ||
-        { field: field, label: field, unit: "", min: 0, max: 1 }
+        { field: field, label: field, unit: "", min: 0, max: 1, aliases: [] }
     );
+}
+
+function normalizeName(name) {
+    return String(name || "").replace(/^_+/, "");
+}
+
+function resolvePropertyNameForMeta(meta) {
+    const base = meta.field;
+    const aliases = Array.isArray(meta.aliases) ? meta.aliases : [];
+    const candidates = [base].concat(aliases).map((s) => String(s || ""));
+
+    if (!availablePropertyNames || !availablePropertyNames.length) {
+        return base;
+    }
+
+    // First pass: exact match (including underscore variants)
+    for (let i = 0; i < candidates.length; i++) {
+        const cand = candidates[i];
+        for (let j = 0; j < availablePropertyNames.length; j++) {
+            const prop = availablePropertyNames[j];
+            if (prop === cand) return prop;
+        }
+    }
+
+    // Second pass: match ignoring leading underscores on metadata side
+    for (let i = 0; i < candidates.length; i++) {
+        const cand = candidates[i];
+        for (let j = 0; j < availablePropertyNames.length; j++) {
+            const prop = availablePropertyNames[j];
+            if (normalizeName(prop) === cand) return prop;
+        }
+    }
+
+    // Fallback to base logical name
+    return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,10 +187,12 @@ function getAttributeMeta(field) {
 function buildShader() {
     var colorMeta = getAttributeMeta(currentColorAttribute);
     var rampDef = COLOR_RAMPS[currentRamp] || COLOR_RAMPS.heat;
+    var colorPropName = resolvePropertyNameForMeta(colorMeta);
+    var useNormals = !!(normalXPropName && normalYPropName && normalZPropName && currentNormalOffset !== 0);
 
     var fragLines = [];
     fragLines.push("void fragmentMain(FragmentInput fsInput, inout czm_modelMaterial material) {");
-    fragLines.push("  float cVal = float(fsInput.metadata." + colorMeta.field + ");");
+    fragLines.push("  float cVal = float(fsInput.metadata." + colorPropName + ");");
     fragLines.push("  float t = clamp((cVal - " + colorMeta.min.toFixed(1) + ") / " +
         Math.max(1e-6, colorMeta.max - colorMeta.min).toFixed(1) + ", 0.0, 1.0);");
 
@@ -166,12 +211,20 @@ function buildShader() {
     vertLines.push("void vertexMain(VertexInput vsInput, inout czm_modelVertexOutput vsOutput) {");
     if (currentSizeAttribute) {
         var sizeMeta = getAttributeMeta(currentSizeAttribute);
-        vertLines.push("  float sVal = float(vsInput.metadata." + sizeMeta.field + ");");
+        var sizePropName = resolvePropertyNameForMeta(sizeMeta);
+        vertLines.push("  float sVal = float(vsInput.metadata." + sizePropName + ");");
         vertLines.push("  float st = clamp((sVal - " + sizeMeta.min.toFixed(1) + ") / " +
             Math.max(1e-6, sizeMeta.max - sizeMeta.min).toFixed(1) + ", 0.0, 1.0);");
         vertLines.push("  vsOutput.pointSize = " + currentSizeScale.toFixed(1) + " * (0.5 + st);");
     } else {
         vertLines.push("  vsOutput.pointSize = " + currentSizeScale.toFixed(1) + ";");
+    }
+    if (useNormals) {
+        vertLines.push("  vec3 n = normalize(vec3(" +
+            "float(vsInput.metadata." + normalXPropName + ")," +
+            "float(vsInput.metadata." + normalYPropName + ")," +
+            "float(vsInput.metadata." + normalZPropName + ")));");
+        vertLines.push("  vsOutput.positionMC.xyz += n * " + currentNormalOffset.toFixed(3) + ";");
     }
     vertLines.push("}");
 
@@ -219,7 +272,9 @@ export function setPointSize(tileset, size) {
 
 export function setScreenSpaceSize(tileset, useScreenSpace) {
     if (!tileset || !tileset.pointCloudShading) return;
-    tileset.pointCloudShading.attenuation = !!useScreenSpace;
+    // Always use screen-space / attenuated sizing. The toggle in the UI
+    // no longer disables attenuation; it is effectively always on.
+    tileset.pointCloudShading.attenuation = true;
 }
 
 export function getColorRampNames() {
@@ -241,6 +296,27 @@ export function getCurrentAttribute() {
     return currentColorAttribute;
 }
 
+/**
+ * Register structural metadata property names discovered at runtime.
+ * Called from tilesets.js once we have inspected the tileset.
+ */
+export function registerAvailableProperties(names) {
+    if (!names) {
+        availablePropertyNames = null;
+        normalXPropName = normalYPropName = normalZPropName = null;
+        return;
+    }
+    availablePropertyNames = Array.from(names).map((n) => String(n));
+
+    // Resolve normal property names once, if available
+    const normalXMeta = { field: "ShadingSensorNormalX", aliases: ["NormalX"] };
+    const normalYMeta = { field: "ShadingSensorNormalY", aliases: ["NormalY"] };
+    const normalZMeta = { field: "ShadingSensorNormalZ", aliases: ["NormalZ"] };
+    normalXPropName = resolvePropertyNameForMeta(normalXMeta);
+    normalYPropName = resolvePropertyNameForMeta(normalYMeta);
+    normalZPropName = resolvePropertyNameForMeta(normalZMeta);
+}
+
 /** Set value filter range (normalized 0–1). Points outside [normMin, normMax] are hidden. */
 export function setFilterRange(tileset, normMin, normMax) {
     var lo = Math.max(0, Math.min(1, Number(normMin) || 0));
@@ -256,4 +332,12 @@ export function setFilterRange(tileset, normMin, normMax) {
 /** Get current filter range as { min, max } normalized 0–1. */
 export function getFilterRange() {
     return { min: currentFilterMinNorm, max: currentFilterMaxNorm };
+}
+
+/** Set normal offset distance in model units (meters). */
+export function setNormalOffset(tileset, distance) {
+    currentNormalOffset = Number(distance) || 0;
+    if (tileset && currentColorAttribute) {
+        tileset.customShader = buildShader();
+    }
 }
