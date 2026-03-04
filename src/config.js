@@ -32,7 +32,7 @@
  */
 export const CITY_ASSETS = {
     albany: 4497409,//4492611,
-    tompkins: 4490407,
+    tompkins: 4498876,//4490407,
 };
 
 const DEFAULT_CITY = "tompkins";
@@ -130,7 +130,7 @@ export const PERFORMANCE_CONFIG = {
  */
 export const ATTRIBUTES = [
     {
-        field: "AnnualRadiation_Wh_m2",
+        field: "AnnualRadiation_kWh_m2",
         label: "Annual Radiation",
         unit: "kWh/m²",
         min: 0,
@@ -186,7 +186,7 @@ export const ATTRIBUTES = [
  * - defaultPointSize: Base point size in pixels (before attenuation).
  */
 export const STYLING_CONFIG = {
-    defaultAttribute: "AnnualRadiation_Wh_m2",
+    defaultAttribute: "AnnualRadiation_kWh_m2",
     defaultColorRamp: "heat",
     defaultPointSize: 3,
 };
